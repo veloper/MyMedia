@@ -1,12 +1,16 @@
 ActiveAdmin.register Movie do
-
+  controller do
+    def scoped_collection
+      Movie.includes(:images)
+    end
+  end
 
   index do
     column :id
     column "Poster" do |m|
-      if m.thumbnail_image_raw?
+      if m.images.any? && (thumbnail_blob = m.images.first.thumbnail_blob).present?
         "<div align='center'>
-          <img style='border:1px solid black' src='data:image/png;base64,#{Base64.encode64(m.thumbnail_image_raw)}' />
+          <img style='border:1px solid black;max-width:50px' src='data:image/png;base64,#{Base64.encode64(thumbnail_blob)}' />
         </div>".html_safe
       else
         "-"
@@ -16,7 +20,7 @@ ActiveAdmin.register Movie do
       content_tag :strong, m.title
     end
     column raw("&hearts;"), :sortable => :rating, :align => :right do |m|
-      m.rating.round(1)
+      m.rating.to_f.round(1)
     end
     column("Size", :sortable => :bytes) do |m|
       size = m.bytes.nil? ? "?" : number_to_human_size(m.bytes.to_i, :precision => 2)

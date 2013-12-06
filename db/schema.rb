@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20131205044411) do
+ActiveRecord::Schema.define(:version => 20131206022449) do
 
   create_table "active_admin_comments", :force => true do |t|
     t.string   "namespace"
@@ -46,6 +46,33 @@ ActiveRecord::Schema.define(:version => 20131205044411) do
   add_index "admin_users", ["email"], :name => "index_admin_users_on_email", :unique => true
   add_index "admin_users", ["reset_password_token"], :name => "index_admin_users_on_reset_password_token", :unique => true
 
+  create_table "delayed_jobs", :force => true do |t|
+    t.integer  "priority",   :default => 0, :null => false
+    t.integer  "attempts",   :default => 0, :null => false
+    t.text     "handler",                   :null => false
+    t.text     "last_error"
+    t.datetime "run_at"
+    t.datetime "locked_at"
+    t.datetime "failed_at"
+    t.string   "locked_by"
+    t.string   "queue"
+    t.datetime "created_at",                :null => false
+    t.datetime "updated_at",                :null => false
+  end
+
+  add_index "delayed_jobs", ["priority", "run_at"], :name => "delayed_jobs_priority"
+
+  create_table "images", :force => true do |t|
+    t.integer  "imageable_id"
+    t.string   "imageable_type"
+    t.string   "url"
+    t.binary   "large_blob"
+    t.binary   "medium_blob"
+    t.binary   "thumbnail_blob"
+    t.datetime "created_at",     :null => false
+    t.datetime "updated_at",     :null => false
+  end
+
   create_table "movie_sources", :force => true do |t|
     t.string   "path"
     t.datetime "created_at", :null => false
@@ -57,17 +84,16 @@ ActiveRecord::Schema.define(:version => 20131205044411) do
     t.string   "path"
     t.string   "title"
     t.integer  "bytes"
-    t.datetime "created_at",                         :null => false
-    t.datetime "updated_at",                         :null => false
+    t.datetime "created_at",                     :null => false
+    t.datetime "updated_at",                     :null => false
     t.string   "imdb_id"
     t.string   "tagline"
     t.text     "plot"
-    t.integer  "runtime",             :limit => 255
+    t.integer  "runtime",         :limit => 255
     t.decimal  "rating"
     t.string   "poster_url"
     t.date     "release_date"
     t.string   "certification"
-    t.binary   "thumbnail_image_raw"
   end
 
 end

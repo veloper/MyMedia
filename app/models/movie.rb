@@ -3,52 +3,54 @@
 #
 # Table name: movies
 #
-#  id                  :integer          not null, primary key
-#  movie_source_id     :integer
-#  path                :string(255)
-#  title               :string(255)
-#  bytes               :integer
-#  created_at          :datetime         not null
-#  updated_at          :datetime         not null
-#  imdb_id             :string(255)
-#  tagline             :string(255)
-#  plot                :text
-#  runtime             :integer
-#  rating              :decimal(, )
-#  poster_url          :string(255)
-#  release_date        :date
-#  certification       :string(255)
-#  thumbnail_image_raw :binary
+#  id              :integer          not null, primary key
+#  movie_source_id :integer
+#  path            :string(255)
+#  title           :string(255)
+#  bytes           :integer
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  imdb_id         :string(255)
+#  tagline         :string(255)
+#  plot            :text
+#  runtime         :integer
+#  rating          :decimal(, )
+#  poster_url      :string(255)
+#  release_date    :date
+#  certification   :string(255)
 #
 
 require 'open-uri'
+require 'ostruct'
 class Movie < ActiveRecord::Base
 
   POSTER_RATIO = (40.0 / 27.0)
 
+  belongs_to :movie_source
+  has_many :images, :as => :imageable
+
   attr_accessor :imdb_movie
 
-  def update_metadata!
-    if imdb_id.blank? && (movie = find_imdb_movie).present?
-      self.imdb_movie = movie
+  def self.update_all_metadata!
+    includes(:images).all.each do |movie|
+      movie.delay(:queue => 'movies').update_metadata!
     end
+  end
 
-    if imdb_id.blank? || imdb_id_changed?
-      attributes.except("id").keys.each do |key|
-        self.send("#{key}=", imdb_movie.send(key)) if imdb_movie.respond_to?(key)
-      end
+  def update_metadata!
+    raise "Only existing movies may have their metadata updated." unless persisted?
+
+    movie = find_imdb_movie
+
+    attributes.except("id").keys.each do |key|
+      self.send("#{key}=", movie.send(key)) if movie.respond_to?(key)
     end
 
     self.runtime          = runtime.to_i
     self.bytes            = pathname.size
 
-    if poster_url?
-      if (poster_blob = poster_image_blob).present?
-        image  = Magick::Image.from_blob(poster_blob).first
-        width  = 50
-        height = width*POSTER_RATIO
-        self.thumbnail_image_raw = image.resize_to_fit(width.to_i, height.to_i).to_blob
-      end
+    if poster_url? && images.where(:url => poster_url).blank?
+      images.create!{|r| r.url = poster_url}.delay(:queue => 'images').process!
     end
 
     save!
@@ -99,13 +101,13 @@ class Movie < ActiveRecord::Base
   end
 
   def find_imdb_movie
-    movies = find_imdb_movies
+    movies = find_imdb_movies.map(&OpenStruct.method(:new))
     return false unless movies.any?
-    imdb.find_movie_by_id(movies.first[:imdb_id])
+    movie = FuzzyMatch.new(movies.first(2).reverse, :read => :title).find(inferred_title)
+    imdb.find_movie_by_id(movie.imdb_id)
   end
 
   def find_imdb_movies
-    # Fuzzy match requied on title see 311 for example
     Array(imdb.find_by_title(inferred_title))
   end
 

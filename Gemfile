@@ -4,6 +4,7 @@ gem 'rails', '3.2.16'
 
 gem 'sqlite3'
 
+gem 'thin'
 
 # Gems used only for assets and not required
 # in production environments by default.
@@ -33,4 +34,6 @@ gem 'annotate', ">=2.5.0"
 
 gem 'imdb_party'
 gem 'rmagick', '2.13.2'
-gem 'amatch'
+gem 'fuzzy_match'
+gem 'delayed_job_active_record'
+gem 'foreman'
