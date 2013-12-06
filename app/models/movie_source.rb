@@ -1,3 +1,13 @@
+# == Schema Information
+#
+# Table name: movie_sources
+#
+#  id         :integer          not null, primary key
+#  path       :string(255)
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#
+
 class MovieSource < ActiveRecord::Base
   attr_accessible :path
   has_many :movies
